@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stripe Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <h1>Buy a Sample Product - $10</h1>
+    <button id="checkout-button">Pay with Stripe</button>
+
+    <!-- CSRF Token -->
+    <script>
+        function getCSRFToken() {
+            let csrfToken = null;
+            let cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.startsWith("csrftoken=")) {
+                    csrfToken = cookie.substring("csrftoken=".length, cookie.length);
+                    break;
+                }
+            }
+            return csrfToken;
+        }
+
+        var stripe = Stripe("{{ stripe_public_key }}");
+        document.getElementById("checkout-button").addEventListener("click", function () {
+            fetch("{% url 'create_checkout_session' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFToken() // Add CSRF token in the request header
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(session => stripe.redirectToCheckout({ sessionId: session.sessionId }))
+            .catch(error => console.error("Error:", error));
+        });
+    </script>
+</body>
+</html>
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>Stripe Payment</title>-->
+<!--    <script src="https://js.stripe.com/v3/"></script>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <h1>Buy a Sample Product - $10</h1>-->
+<!--    <button id="checkout-button">Pay with Stripe</button>-->
+
+<!--    <script>-->
+<!--        var stripe = Stripe("{{ stripe_public_key }}");-->
+<!--        document.getElementById("checkout-button").addEventListener("click", function () {-->
+<!--            fetch("{% url 'create_checkout_session' %}", { method: "POST" ,headers: {-->
+<!--                    "Content-Type": "application/json",-->
+<!--                    "X-CSRFToken": {{csrf_token}} // Add CSRF token in the request header-->
+<!--                }-->
+<!--            .then(response => response.json())-->
+<!--            .then(session => stripe.redirectToCheckout({ sessionId: session.sessionId }))-->
+<!--            .catch(error => console.error("Error:", error))-->
+<!--        });-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->

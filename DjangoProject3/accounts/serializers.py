@@ -6,10 +6,11 @@ from rest_framework.exceptions import AuthenticationFailed
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'password']
+        fields = ['id', 'email', 'first_name', 'last_name','mobile_no', 'role', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
-    def save(self, validated_data):
+    def create(self, validated_data):
+        validated_data = self.validated_data
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.set_password(password)
@@ -18,20 +19,20 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-    tokens = serializers.SerializerMethodField()
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True,required=True)
+    # tokens = serializers.SerializerMethodField()
 
-    def get_tokens(self, obj):
-        user = User.objects.get(email=obj['email'])
-        return {
-            'refresh': user.tokens()['refresh'],
-            'access': user.tokens()['access']
-        }
+    # def get_tokens(self, obj):
+    #     user = User.objects.get(email=obj['email'])
+    #     return {
+    #         'refresh': user.tokens()['refresh'],
+    #         'access': user.tokens()['access']
+    #     }
 
     class Meta:
         model = User
-        fields = ['password', 'email', 'tokens']
+        fields = ['password', 'email']
 
     def validate(self, data):
         user = authenticate(email=data['email'], password=data['password'])
@@ -41,7 +42,7 @@ class LoginSerializer(serializers.Serializer):
             raise AuthenticationFailed('Account disabled, contact admin')
         return {
             'email': user.email,
-            'tokens': user.tokens
+            # 'tokens': user.tokens
         }
 
 class ProfileSerializer(serializers.ModelSerializer):
