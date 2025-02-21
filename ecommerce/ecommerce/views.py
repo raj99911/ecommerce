@@ -302,6 +302,7 @@ class PaymentStatusAPIView(generics.UpdateAPIView):
             # print(f"Before saving: {order.payment_status}, {order.status},{self.queryset.get(order_id=order_id)}")
 
             order.payment_status = "paid"
+            order.payment_intent_id = session.payment_intent
             order.status = "processing"
             order_item = OrderItem.objects.filter(order_id=order_id).first()
 
@@ -351,13 +352,26 @@ class CancelOrderAPIView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user, status="pending")
+        return Order.objects.filter(user=self.request.user)
 
     def update(self, request, *args, **kwargs):
         order = self.get_object()
-        order.status = "canceled"
-        order.save()
-        return Response({"message": "Order canceled successfully"}, status=status.HTTP_200_OK)
+        if order.status == "shipped":
+            return Response({"message": "Order unable to cancel as it already shipped."}, status=status.HTTP_400_BAD_REQUEST)
+        if order.status == "cancelled":
+            return Response({"message": "Order was already cancelled."}, status=status.HTTP_400_BAD_REQUEST)
+        if order.payment_intent_id:
+            try:
+                payment_intent = stripe.PaymentIntent.retrieve(order.payment_intent_id)
+
+                if payment_intent.status == "succeeded":
+                    stripe.Refund.create(payment_intent=order.payment_intent_id)
+                    order.status = "cancelled"
+                    order.payment_status = "refunded"
+                    order.save()
+            except stripe.error.StripeError as e:
+                return  Response({'details':f'Stripe error: {str(e)}'},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"message": "Order cancelled successfully"}, status=status.HTTP_200_OK)
 
 class Wishlist(viewsets.ModelViewSet):
     queryset = Wishlist.objects.all()

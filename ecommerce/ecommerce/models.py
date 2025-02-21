@@ -109,6 +109,7 @@ class Order(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ("pending", "Pending"),
         ("paid", "Paid"),
+        ("refunded", "Refunded"),
         ("failed", "Failed"),
     ]
     STATUS_CHOICES = [
@@ -128,6 +129,7 @@ class Order(models.Model):
     shipping_carrier = models.ForeignKey(ShippingCarrier,on_delete=models.CASCADE, blank=True, null=True,related_name="orders")
     tracking_url = models.URLField(blank=True, null=True)
     payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default="pending")
+    payment_intent_id = models.CharField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     session_id = models.CharField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
