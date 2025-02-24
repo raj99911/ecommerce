@@ -9,7 +9,10 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'first_name', 'last_name','mobile_no', 'role', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
 
     def create(self, validated_data):
         validated_data = self.validated_data
@@ -28,6 +31,15 @@ class UserSerializer(serializers.ModelSerializer):
     #     user.save()
     #     profile = Profile.objects.create(user=user)
     #     return user
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email', 'first_name', 'last_name','mobile_no', 'role']
+        extra_kwargs = {
+            'email':{'read_only': True},
+            'role': {'read_only': True},
+       }
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -57,11 +69,29 @@ class LoginSerializer(serializers.Serializer):
         }
 
 class ProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    user = UserDetailSerializer(required=False)
+
+
 
     class Meta:
         model = Profile
-        fields = ['id', 'user', 'bio', 'age', 'location']
+        fields = ['id', 'user', 'bio', 'age', 'location','profile_pic']
 
+    def update(self, instance, validated_data):
+        """ Update user and profile fields """
 
+        # Extract and update user data separately
+        user_data = validated_data.pop('user', None)
+        if user_data:
+            user = instance.user  # Get related user
+            for attr, value in user_data.items():
+                setattr(user, attr, value)  # Set new values
+            user.save()
+
+        # Update Profile fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
 
